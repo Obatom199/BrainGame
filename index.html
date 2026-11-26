@@ -116,7 +116,7 @@ const now = () => Date.now() + offset;
 })();
 
 /* ---------- backends ---------- */
-const useSB = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && window.supabase);
+const useSB = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && window.supabase) && !params.has("demo");
 
 const SB = (() => {
   const sb = useSB ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY) : null;
@@ -481,7 +481,15 @@ function hostFinished() {
 /* ---------- boot ---------- */
 (async function boot() {
   if (!useSB) { const d = document.createElement("div"); d.className = "demo"; d.textContent = "Demo mode: no Supabase set. Open this page in several tabs of the same browser to test."; document.body.appendChild(d); }
-  try { await DB.init(); } catch (e) { console.error(e); view("err", `<div class="card"><h2>Cannot reach the game server</h2><p class="sub">Check the Supabase URL, key and schema.</p></div>`); return; }
+  try { await DB.init(); } catch (e) {
+    console.error(e);
+    const msg = (e && (e.message || e.details || e.hint)) || "Network request failed";
+    view("err", `<div class="card"><h2>Cannot reach the game server</h2><p class="sub" id="em"></p>
+      <p class="small">Some preview panes block outside connections. Open the published link in your browser instead.</p>
+      <a class="btn" style="text-decoration:none" href="?demo=1${params.has("host") ? "&host=1" : ""}">Try demo mode</a></div>`);
+    setText("#em", msg);
+    return;
+  }
   if (params.has("host")) startHost(); else showLanding();
 })();
 })();
