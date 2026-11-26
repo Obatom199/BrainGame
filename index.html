@@ -14,8 +14,8 @@
     SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlb2hoZnhhbXBpdGlib3R1d2xtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxODMxNDIsImV4cCI6MjEwODc1OTE0Mn0.LKbhrUrzABV7u6y9Pr1UmkESY0FAEVjDOan2InGdmk8"
   };
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="vendor/qrcode.js"></script>
 <style>
   :root{--gold:#fbbf14;--fg:#fff;--muted:#9aa1d6;--soft:#dfe3ff;--panel:rgba(10,12,40,.72);--pb:rgba(120,130,200,.28);--field:rgba(255,255,255,.07);--fb:rgba(255,255,255,.2);--track:#1a1d4d;--shade:rgba(0,0,0,.45);--chip:rgba(255,255,255,.1);--ph:#8088c4}
   html[data-theme=light]{--gold:#c98400;--fg:#1d1b4b;--muted:#5b609c;--soft:#2c2f6b;--panel:rgba(255,255,255,.82);--pb:rgba(90,100,190,.3);--field:#fff;--fb:rgba(70,80,170,.35);--track:#d5d9f4;--shade:rgba(255,255,255,0);--chip:rgba(70,80,170,.12);--ph:#8a8fc0}
@@ -268,7 +268,8 @@ const BRAIN = `<svg class="brain" viewBox="0 0 130 104" xmlns="http://www.w3.org
 </svg>`;
 
 /* ====================== backends ====================== */
-const useSB = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && window.supabase) && !params.has("demo");
+const wantSB = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY) && !params.has("demo");
+const useSB = wantSB && !!window.supabase;
 
 const SB = (() => {
   const sb = useSB ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY) : null;
@@ -860,6 +861,10 @@ async function startRoundFrom() {
 
 /* ====================== boot ====================== */
 (async function boot() {
+  if (wantSB && !useSB) {
+    view("err", `<div class="card"><h2>Game library did not load</h2><p class="sub">This browser could not load the files the game needs. Refresh the page, or try Chrome, Edge or Safari.</p><a class="btn" href="?demo=1${params.has("host") ? "&host=1" : ""}">Try demo mode</a></div>`);
+    return;
+  }
   if (!useSB) { const d = document.createElement("div"); d.className = "demo"; d.textContent = "Demo mode: works across tabs of one browser only. Open the page in several tabs to test."; document.body.appendChild(d); }
   try { await DB.init(); } catch (e) {
     console.error(e);
