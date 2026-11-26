@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%A0%3C/text%3E%3C/svg%3E">
+<title>Schulte Table Challenge</title>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@600;800;900&display=swap" rel="stylesheet">
+<script>
+  // Supabase project 'quiz game'. The URL and anon key are public by design.
+  // Leave both empty to run in demo mode (works across tabs of one browser only).
+  window.SCHULTE_CONFIG = {
+    SUPABASE_URL: "https://reohhfxampitibotuwlm.supabase.co",
+    SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlb2hoZnhhbXBpdGlib3R1d2xtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxODMxNDIsImV4cCI6MjEwODc1OTE0Mn0.LKbhrUrzABV7u6y9Pr1UmkESY0FAEVjDOan2InGdmk8"
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+  :root{--gold:#fbbf14}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;min-height:100%;color:#fff;font-family:Raleway,system-ui,sans-serif;overflow-x:hidden}
+  body{background:radial-gradient(1200px 800px at 50% 15%,#16134f 0,#0a0a2c 55%,#060619 100%);background-attachment:fixed}
+  #bokeh{position:fixed;inset:0;overflow:hidden;z-index:0;pointer-events:none}
+  #bokeh span{position:absolute;border-radius:50%;animation:drift var(--d) ease-in-out infinite alternate}
+  @keyframes drift{from{transform:translate(0,0)}to{transform:translate(var(--x),var(--y))}}
+  #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px 16px}
+  h1,h2{margin:0;font-weight:900;line-height:1.08;text-shadow:0 3px 0 rgba(0,0,0,.45)}
+  h1{font-size:clamp(2.075rem,7.4vw,3.175rem)}
+  .gold{color:var(--gold)}
+  .sub{margin:0;font-weight:800;font-size:.975rem;color:#dfe3ff}
+  .small{color:#9aa1d6;font-weight:800;font-size:.775rem}
+  a.small{text-decoration:none}
+  .err{min-height:1.2em;color:#ff7b7b;font-weight:800}
+  .qmark{width:76px;height:76px;border-radius:50%;border:4px solid var(--gold);color:var(--gold);font-weight:900;font-size:2.8rem;display:flex;align-items:center;justify-content:center;margin:0 auto;text-shadow:0 3px 0 rgba(0,0,0,.4)}
+  .brain{width:144px;height:auto;margin:0 auto;display:block;overflow:visible;filter:drop-shadow(0 8px 16px rgba(255,110,170,.35));animation:bob 3.2s ease-in-out infinite}
+  .host .brain{width:180px}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-6px) rotate(2deg)}}
+  .td{animation:pop 1.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes pop{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.1)}}
+  .btn{font:inherit;font-weight:900;font-size:1.025rem;border:0;border-radius:14px;padding:14px 26px;color:#1a1200;background:linear-gradient(#ffd23f,#f2a900);box-shadow:0 4px 0 #8a5d00,0 10px 24px rgba(251,191,20,.25);cursor:pointer}
+  .btn:active{transform:translateY(2px);box-shadow:0 2px 0 #8a5d00}
+  .btn[disabled]{opacity:.4;pointer-events:none}
+  input{font:inherit;font-weight:800;font-size:1.075rem;width:100%;padding:14px 16px;border-radius:14px;border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;text-align:center;outline:0}
+  input:focus{border-color:var(--gold)}
+  input::placeholder{color:#8088c4}
+  .card{width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;align-items:stretch;text-align:center}
+  .label{color:var(--gold);font-weight:900;letter-spacing:.05em;text-transform:uppercase}
+  .timer{font-size:clamp(76px,22vw,150px);font-weight:900;line-height:1;text-shadow:0 5px 0 rgba(0,0,0,.4)}
+  .bar{height:14px;border-radius:99px;background:#1a1d4d;overflow:hidden;width:100%}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,#ffcf2e,#f5a800);border-radius:99px;transition:width .15s linear}
+  .panel{padding:14px;border-radius:22px;background:rgba(10,12,40,.72);border:2px solid rgba(120,130,200,.25);width:100%}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .tile{aspect-ratio:1;border:0;border-radius:14px;color:#fff;font:inherit;font-weight:900;font-size:clamp(24px,9vw,50px);text-shadow:2px 3px 0 rgba(0,0,0,.4);box-shadow:inset 0 -5px 0 rgba(0,0,0,.18),inset 0 3px 0 rgba(255,255,255,.2);touch-action:manipulation;transition:transform .12s,opacity .2s;padding:0}
+  .tile.done{opacity:.16;transform:scale(.9);pointer-events:none}
+  .tile.bad{animation:shake .25s;outline:3px solid #fff}
+  @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .big{font-size:clamp(120px,40vw,260px);font-weight:900;line-height:1;color:var(--gold);text-shadow:0 8px 0 rgba(0,0,0,.4)}
+  .stats{display:flex;justify-content:center;gap:22px;font-weight:900}
+  .stats b{display:block;font-size:1.875rem}
+  .stats span{color:#9aa1d6;font-size:.725rem;text-transform:uppercase;letter-spacing:.05em}
+  /* host */
+  .host{width:100%;max-width:1300px;display:grid;grid-template-columns:minmax(300px,440px) 1fr;gap:32px;align-items:start}
+  .host .left{display:flex;flex-direction:column;gap:14px;text-align:center;align-items:center}
+  .code{font-size:clamp(3.2rem,9vw,5.5rem);font-weight:900;letter-spacing:.12em;color:var(--gold);line-height:1;text-shadow:0 4px 0 rgba(0,0,0,.4)}
+  .url{font-weight:800;color:#dfe3ff;word-break:break-all;font-size:.875rem}
+  #qr{background:#fff;padding:8px;border-radius:14px;line-height:0}
+  #qr svg{width:190px;height:190px}
+  .chips{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 20px;min-height:60px}
+  .chip{padding:8px 16px;border-radius:99px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.18);font-weight:800;font-size:clamp(.875rem,1.8vw,1.375rem)}
+  .hostplay{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center}
+  .row{display:grid;grid-template-columns:2.2em minmax(6em,14em) 1fr auto;gap:14px;align-items:center;padding:8px 6px;font-weight:900;font-size:clamp(.875rem,2.1vw,1.575rem)}
+  .row .pos{color:var(--gold);text-align:center}
+  .row .nm{text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row .st{color:#cfd4ff;font-size:.7em;white-space:nowrap}
+  .row.first .nm{color:var(--gold)}
+  .row .bar{height:16px}
+  .more{color:#9aa1d6;font-weight:800;padding:6px}
+  .winner{font-size:clamp(2.475rem,8.8vw,5.875rem);font-weight:900;color:#fff;line-height:1.05;text-shadow:0 5px 0 rgba(0,0,0,.45)}
+  .demo{position:fixed;left:0;right:0;bottom:0;z-index:3;text-align:center;font-size:.655rem;font-weight:800;color:#c9cdf5;background:rgba(0,0,0,.45);padding:5px 10px}
+  @media(max-width:860px){.host{grid-template-columns:1fr}.row{grid-template-columns:1.8em minmax(5em,9em) 1fr}.row .st{grid-column:2/4;margin-top:-6px}}
+</style>
+</head>
+<body>
+<div id="bokeh"></div>
+<div id="app"></div>
+<script>
+(() => {
+"use strict";
+
+/* ---------- constants & helpers ---------- */
+const DURATION = 25;          // seconds per round
+const PENALTY_MS = 2000;      // time added per mistake when ranking
+const LEAD_MS = 4000;         // countdown before the round starts
+const CFG = window.SCHULTE_CONFIG || {};
+const $ = s => document.querySelector(s);
+const app = $("#app");
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ord = n => { const s = ["th","st","nd","rd"], v = n % 100; return n + (s[(v-20)%10] || s[v] || s[0]); };
+const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c==="x"?r:(r&3|8)).toString(16); }));
+const params = new URLSearchParams(location.search);
+let offset = 0;                                  // server clock offset
+const now = () => Date.now() + offset;
+
+/* ---------- background (bokeh) ---------- */
+(function bokeh(){
+  const cols = ["139,63,168","43,74,154","31,111,122","184,135,42","90,60,170"];
+  const box = $("#bokeh");
+  for (let i = 0; i < 16; i++) {
+    const s = document.createElement("span"), size = 140 + Math.random()*320, c = cols[i % cols.length];
+    s.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100-8}%;top:${Math.random()*100-8}%;` +
+      `background:repeating-radial-gradient(circle,rgba(${c},.20) 0 18px,rgba(${c},.08) 18px 34px);` +
+      `--x:${(Math.random()-.5)*120}px;--y:${(Math.random()-.5)*120}px;--d:${14+Math.random()*16}s;filter:blur(1.5px);opacity:.55`;
+    box.appendChild(s);
+  }
+})();
+
+/* ---------- backends ---------- */
+const useSB = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && window.supabase) && !params.has("demo");
+
+const SB = (() => {
+  const sb = useSB ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY) : null;
+  const ck = r => { if (r.error) throw r.error; return r.data; };
+  return {
+    async init() {
+      const t0 = Date.now();
+      const ms = ck(await sb.rpc("st_server_time"));
+      const t1 = Date.now();
+      offset = Number(ms) - (t0 + t1) / 2;
+    },
+    async createRoom(code, seed) { ck(await sb.from("st_rooms").insert({ code, seed })); },
+    async getRoom(code) { return ck(await sb.from("st_rooms").select("*").eq("code", code).maybeSingle()); },
+    async updateRoom(code, patch) { ck(await sb.from("st_rooms").update(patch).eq("code", code)); },
+    async listPlayers(code) { return ck(await sb.from("st_players").select("*").eq("room_code", code)) || []; },
+    async upsertPlayer(p) { ck(await sb.from("st_players").upsert(p)); },
+    async resetPlayers(code) { ck(await sb.from("st_players").update({ found: 0, mistakes: 0, finished_ms: null }).eq("room_code", code)); },
+    onChange(code, cb) {
+      const ch = sb.channel("room-" + code)
+        .on("postgres_changes", { event: "*", schema: "public", table: "st_rooms", filter: "code=eq." + code }, cb)
+        .on("postgres_changes", { event: "*", schema: "public", table: "st_players", filter: "room_code=eq." + code }, cb)
+        .subscribe();
+      return () => sb.removeChannel(ch);
+    }
+  };
+})();
+
+const Demo = (() => {
+  const K = "schulte-demo-v1", listeners = new Set();
+  const bc = "BroadcastChannel" in window ? new BroadcastChannel(K) : null;
+  const load = () => { try { return JSON.parse(localStorage.getItem(K)) || { rooms: {}, players: {} }; } catch { return { rooms: {}, players: {} }; } };
+  const save = d => { localStorage.setItem(K, JSON.stringify(d)); if (bc) bc.postMessage(1); listeners.forEach(f => f()); };
+  if (bc) bc.onmessage = () => listeners.forEach(f => f());
+  return {
+    async init() {},
+    async createRoom(code, seed) { const d = load(); if (d.rooms[code]) throw new Error("exists"); d.rooms[code] = { code, seed, status: "lobby", start_at: null, duration: DURATION }; save(d); },
+    async getRoom(code) { return load().rooms[code] || null; },
+    async updateRoom(code, patch) { const d = load(); if (d.rooms[code]) Object.assign(d.rooms[code], patch); save(d); },
+    async listPlayers(code) { return Object.values(load().players).filter(p => p.room_code === code); },
+    async upsertPlayer(p) { const d = load(); d.players[p.id] = Object.assign(d.players[p.id] || {}, p); save(d); },
+    async resetPlayers(code) { const d = load(); Object.values(d.players).forEach(p => { if (p.room_code === code) { p.found = 0; p.mistakes = 0; p.finished_ms = null; } }); save(d); },
+    onChange(code, cb) { listeners.add(cb); return () => listeners.delete(cb); }
+  };
+})();
+
+const DB = useSB ? SB : Demo;
+
+/* Pull room + players whenever something changes (plus a slow poll as a safety net). */
+function watch(code, onData) {
+  let busy = false, again = false, dead = false;
+  async function pull() {
+    if (dead) return;
+    if (busy) { again = true; return; }
+    busy = true;
+    try {
+      const [room, players] = await Promise.all([DB.getRoom(code), DB.listPlayers(code)]);
+      if (!dead) onData(room, players);
+    } catch (e) { console.error(e); }
+    busy = false;
+    if (again) { again = false; setTimeout(pull, 150); }
+  }
+  const off = DB.onChange(code, pull);
+  const iv = setInterval(pull, 2500);
+  pull();
+  return () => { dead = true; off(); clearInterval(iv); };
+}
+
+/* ---------- game logic ---------- */
+function rng(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function layout(seed) { const r = rng(seed), a = Array.from({ length: 25 }, (_, i) => i + 1); for (let i = 24; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+const tileColor = i => `hsl(${(i * 14.4).toFixed(1)} 82% 47%)`;
+const newSeed = () => Math.floor(Math.random() * 2147483647);
+const randomCode = () => Array.from({ length: 4 }, () => "ABCDEFGHJKMNPQRSTUVWXYZ"[Math.floor(Math.random() * 23)]).join("");
+
+/* Rank: most numbers found, then lowest time + 2s per mistake (unfinished players count as 25s). */
+function rank(players) {
+  return players.map(p => ({ ...p, adj: (p.finished_ms != null ? p.finished_ms : DURATION * 1000) + (p.mistakes || 0) * PENALTY_MS }))
+    .sort((a, b) => (b.found - a.found) || (a.adj - b.adj) || a.name.localeCompare(b.name));
+}
+function lbHTML(players, limit) {
+  const r = rank(players);
+  return r.slice(0, limit).map((p, i) =>
+    `<div class="row ${i === 0 && p.found > 0 ? "first" : ""}"><span class="pos">${i + 1}</span><span class="nm">${esc(p.name)}</span>` +
+    `<div class="bar"><i style="width:${p.found / 25 * 100}%"></i></div>` +
+    `<span class="st">${p.found}/25${p.mistakes ? ` · ${p.mistakes} miss${p.mistakes > 1 ? "es" : ""}` : ""}${p.finished_ms != null ? ` · ${(p.finished_ms / 1000).toFixed(1)}s` : ""}</span></div>`
+  ).join("") + (r.length > limit ? `<div class="more">+${r.length - limit} more</div>` : "");
+}
+
+const BRAIN = `<svg class="brain" viewBox="0 0 130 104" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs><linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffa3c0"/><stop offset="1" stop-color="#ef4f84"/></linearGradient></defs>
+  <path d="M62 80 Q60 94 68 97 Q76 98 76 84 Z" fill="#d93d73"/>
+  <path d="M22 58C10 54 8 38 20 32C20 18 38 12 48 20C56 10 76 12 80 24C94 20 106 32 100 44C112 50 108 66 96 68C94 80 78 84 70 76C62 86 44 84 42 74C30 80 14 72 22 58Z" fill="url(#bg1)" stroke="#c42f66" stroke-width="2.5" stroke-linejoin="round"/>
+  <g fill="none" stroke="#c42f66" stroke-width="2.4" stroke-linecap="round" opacity=".85">
+    <path d="M48 20C46 30 53 34 50 42"/><path d="M80 24C77 33 84 37 81 43"/><path d="M28 38C36 38 38 44 34 50"/>
+    <path d="M62 30C68 32 70 38 66 41"/><path d="M94 50C88 52 86 58 90 62"/><path d="M30 62C36 60 40 64 38 70"/><path d="M82 68C78 66 74 68 74 73"/>
+  </g>
+  <path d="M30 28C34 22 40 20 45 21" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".45"/>
+  <circle cx="54" cy="52" r="6.2" fill="#fff"/><circle cx="76" cy="52" r="6.2" fill="#fff"/>
+  <circle cx="56.2" cy="49.8" r="3" fill="#2a1233"/><circle cx="78.2" cy="49.8" r="3" fill="#2a1233"/>
+  <path d="M58 64Q65 67 72 64" fill="none" stroke="#7a1f45" stroke-width="2.6" stroke-linecap="round"/>
+  <circle class="td" cx="106" cy="24" r="3" fill="#fbbf14"/><circle class="td" style="animation-delay:.3s" cx="114" cy="15" r="4.5" fill="#fbbf14"/><circle class="td" style="animation-delay:.6s" cx="123" cy="5" r="6" fill="#fbbf14"/>
+  <path class="td" style="animation-delay:.9s" d="M12 20l2.2 5.6L20 28l-5.8 2.4L12 36l-2.2-5.6L4 28l5.8-2.4z" fill="#ffe27a"/>
+</svg>`;
+
+/* ---------- view helper ---------- */
+let viewKey = null;
+function view(key, html, after) { if (viewKey !== key) { viewKey = key; app.innerHTML = html; if (after) after(); } }
+const setText = (sel, t) => { const e = $(sel); if (e && e.textContent !== String(t)) e.textContent = t; };
+const setHTML = (sel, h) => { const e = $(sel); if (e && e.__h !== h) { e.__h = h; e.innerHTML = h; } };
+
+function confetti() {
+  const c = document.createElement("canvas"); c.style.cssText = "position:fixed;inset:0;z-index:5;pointer-events:none";
+  c.width = innerWidth; c.height = innerHeight; document.body.appendChild(c);
+  const x = c.getContext("2d");
+  const ps = Array.from({ length: 170 }, () => ({ x: Math.random() * c.width, y: -20 - Math.random() * c.height * .6, vx: (Math.random() - .5) * 3, vy: 2 + Math.random() * 4, s: 7 + Math.random() * 9, r: Math.random() * 6, vr: (Math.random() - .5) * .3, h: Math.random() * 360 }));
+  let f = 0;
+  (function a() {
+    x.clearRect(0, 0, c.width, c.height);
+    ps.forEach(p => { p.x += p.vx; p.y += p.vy; p.r += p.vr; x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.fillStyle = `hsl(${p.h} 90% 55%)`; x.fillRect(-p.s / 2, -p.s / 3, p.s, p.s * .6); x.restore(); });
+    if (++f < 280) requestAnimationFrame(a); else c.remove();
+  })();
+}
+
+/* ====================================================================
+   LANDING + PLAYER
+   ==================================================================== */
+const saved = {
+  get(code) { try { return JSON.parse(localStorage.getItem("schulte-player-" + code)); } catch { return null; } },
+  set(code, v) { try { localStorage.setItem("schulte-player-" + code, JSON.stringify(v)); } catch {} },
+  lastName() { try { return localStorage.getItem("schulte-name") || ""; } catch { return ""; } }
+};
+
+function showLanding() {
+  view("landing", `
+    <div class="card">
+      ${BRAIN}
+      <h1>HOW FAST DOES<br><span class="gold">YOUR BRAIN THINK?</span></h1>
+      <p class="sub">Find 1 to 25, in order. You have 25 seconds.</p>
+      <input id="code" placeholder="ROOM CODE" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false">
+      <input id="name" placeholder="Your name" maxlength="16" autocomplete="off">
+      <button class="btn" id="join">Join game</button>
+      <div class="err" id="err"></div>
+      <a class="small" href="?host=1">Host a game</a>
+    </div>`, () => {
+      $("#code").value = (params.get("room") || "").toUpperCase().slice(0, 4);
+      $("#name").value = saved.lastName();
+      $("#join").onclick = doJoin;
+      $("#name").addEventListener("keydown", e => { if (e.key === "Enter") doJoin(); });
+      if ($("#code").value) $("#name").focus();
+    });
+}
+
+async function doJoin() {
+  const err = m => { $("#err").textContent = m; $("#join").disabled = false; };
+  const code = $("#code").value.trim().toUpperCase(), name = $("#name").value.trim();
+  if (code.length !== 4 || !name) return err("Enter the 4-letter room code and your name.");
+  $("#join").disabled = true; $("#err").textContent = "";
+  try {
+    const room = await DB.getRoom(code);
+    if (!room) return err("Room not found. Check the code.");
+    const players = await DB.listPlayers(code);
+    const prev = saved.get(code);
+    const id = prev && prev.name.toLowerCase() === name.toLowerCase() ? prev.id : null;
+    if (players.find(p => p.name.toLowerCase() === name.toLowerCase() && p.id !== id)) return err("That name is taken in this room. Add an initial.");
+    const pid = id || uuid();
+    if (!id) await DB.upsertPlayer({ id: pid, room_code: code, name, found: 0, mistakes: 0, finished_ms: null });
+    saved.set(code, { id: pid, name });
+    try { localStorage.setItem("schulte-name", name); } catch {}
+    startPlayer(code, pid, name);
+  } catch (e) { console.error(e); err("Could not connect. Try again."); }
+}
+
+let P = null;
+function startPlayer(code, id, name) {
+  P = { code, id, name, room: null, players: [], g: null, pushT: null };
+  P.unwatch = watch(code, (room, players) => { P.room = room; P.players = players; playerTick(); });
+  P.iv = setInterval(playerTick, 100);
+  view("p-load", `<div class="card"><h2>Joining…</h2></div>`);
+}
+
+function playerTick() {
+  if (!P) return;
+  const r = P.room;
+  if (!r) return;
+  const t = r.start_at ? now() - r.start_at : null;
+  if (!P.g || P.g.seed !== r.seed) {
+    P.g = { seed: r.seed, target: 1, mistakes: 0, finishedMs: null, done: false, late: false };
+    if (r.status === "playing" && t !== null && t > 1000) {           // joined or reloaded mid-round
+      const me = P.players.find(p => p.id === P.id);
+      if (me && (me.found > 0 || me.mistakes > 0 || me.finished_ms != null)) {
+        P.g.target = me.found + 1; P.g.mistakes = me.mistakes;
+        if (me.finished_ms != null) { P.g.done = true; P.g.finishedMs = me.finished_ms; }
+      } else P.g.late = true;
+    }
+  }
+  const g = P.g;
+  if (r.status === "lobby" || t === null) return showWaiting();
+  if (t < 0) return showCountdown(Math.ceil(-t / 1000));
+  if (g.late) return showLate();
+  if (g.done || t >= DURATION * 1000) return showResult();
+  showPlay(t);
+}
+
+function showWaiting() {
+  view("p-wait", `<div class="card">${BRAIN}<h2>You're in, <span class="gold" id="wn"></span></h2>
+    <p class="sub">Waiting for the host to start the round…</p><p class="small"><span id="wc">1</span> player(s) in the room</p></div>`,
+    () => { $("#wn").textContent = P.name; });
+  setText("#wc", P.players.length);
+}
+function showLate() {
+  view("p-late", `<div class="card"><h2>Round in progress</h2><p class="sub">You'll be in for the next one. Stay on this page.</p></div>`);
+}
+function showCountdown(n) {
+  view("p-cd", `<div class="card"><p class="label">Get ready</p><div class="big" id="cd"></div><p class="sub">Find 1 to 25, in order</p></div>`);
+  setText("#cd", n);
+}
+function showPlay(t) {
+  view("p-play:" + P.g.seed, `
+    <div class="card" style="max-width:460px">
+      <div class="label">Seconds left</div>
+      <div class="timer" id="tm">25</div>
+      <div class="bar"><i id="tb" style="width:100%"></i></div>
+      <div class="panel"><div class="grid" id="gr">${layout(P.g.seed).map((n, i) => `<button class="tile" data-n="${n}" style="background:${tileColor(i)}">${n}</button>`).join("")}</div></div>
+      <div class="small" style="letter-spacing:.04em">FIND 1 TO 25, IN ORDER</div>
+    </div>`, () => {
+      document.querySelectorAll(".tile").forEach(b => { if (+b.dataset.n < P.g.target) b.classList.add("done"); });
+      $("#gr").addEventListener("pointerdown", e => { const b = e.target.closest(".tile"); if (b) { e.preventDefault(); tap(+b.dataset.n, b); } });
+    });
+  const left = Math.max(0, DURATION * 1000 - t);
+  setText("#tm", Math.ceil(left / 1000));
+  const bar = $("#tb"); if (bar) bar.style.width = (left / (DURATION * 1000) * 100) + "%";
+}
+function tap(n, el) {
+  const g = P.g, t = now() - P.room.start_at;
+  if (t < 0 || t >= DURATION * 1000 || g.done) return;
+  if (n === g.target) {
+    el.classList.add("done"); g.target++;
+    if (g.target > 25) { g.done = true; g.finishedMs = Math.round(t); push(true); playerTick(); }
+    else push(false);
+  } else {
+    g.mistakes++; el.classList.remove("bad"); void el.offsetWidth; el.classList.add("bad");
+    if (navigator.vibrate) navigator.vibrate(60);
+    push(false);
+  }
+}
+function push(immediate) {
+  clearTimeout(P.pushT);
+  const send = () => DB.upsertPlayer({ id: P.id, room_code: P.code, name: P.name, found: P.g.target - 1, mistakes: P.g.mistakes, finished_ms: P.g.finishedMs }).catch(console.error);
+  if (immediate) send(); else P.pushT = setTimeout(send, 120);
+}
+function showResult() {
+  const g = P.g, over = P.room.status === "finished";
+  view("p-res:" + g.seed, `<div class="card" id="res"></div>`);
+  let head;
+  if (over) {
+    const r = rank(P.players), pos = r.findIndex(p => p.id === P.id) + 1;
+    head = pos === 1 && r[0].found > 0 ? `<p class="label">Winner</p><h1>You won!</h1>` : `<p class="label">Final result</p><h1>You placed<br><span class="gold">${ord(pos)}</span> of ${r.length}</h1>`;
+  } else head = g.done ? `<p class="label">All 25 found</p><h1>Done in <span class="gold">${(g.finishedMs / 1000).toFixed(2)}s</span></h1>` : `<p class="label">Time's up</p><h1>Round over</h1>`;
+  setHTML("#res", `${head}
+    <div class="stats"><div><b>${g.target - 1}/25</b><span>Found</span></div><div><b>${g.mistakes}</b><span>Mistakes</span></div></div>
+    <p class="sub">${over ? "Watch the screen for the leaderboard. Wait for the next round." : "Waiting for everyone to finish…"}</p>`);
+}
+
+/* ====================================================================
+   HOST
+   ==================================================================== */
+let H = null;
+async function startHost() {
+  view("h-load", `<div class="card"><h2>Loading…</h2></div>`);
+  const code = (() => { try { return localStorage.getItem("schulte-host-room"); } catch { return null; } })();
+  if (code) { try { if (await DB.getRoom(code)) return enterHost(code); } catch {} }
+  showHostSetup();
+}
+function showHostSetup(msg) {
+  view("h-setup", `<div class="card">${BRAIN}<h1>HOW FAST DOES<br><span class="gold">YOUR BRAIN THINK?</span></h1>
+    <p class="sub">Schulte table challenge. Everyone plays at the same time.</p>
+    <button class="btn" id="mk">Create game room</button><div class="err" id="err"></div></div>`,
+    () => { $("#mk").onclick = createRoom; });
+  if (msg) setText("#err", msg);
+}
+async function createRoom() {
+  $("#mk").disabled = true;
+  for (let i = 0; i < 6; i++) {
+    const code = randomCode();
+    try { await DB.createRoom(code, newSeed()); try { localStorage.setItem("schulte-host-room", code); } catch {} return enterHost(code); }
+    catch (e) { console.error(e); if (i === 5) { $("#mk").disabled = false; setText("#err", "Could not create a room. Check the Supabase setup."); } }
+  }
+}
+function enterHost(code) {
+  H = { code, room: null, players: [], finalizing: false, doneSeed: null };
+  H.unwatch = watch(code, (room, players) => { H.room = room; H.players = players; hostTick(); });
+  H.iv = setInterval(hostTick, 100);
+}
+function joinURL() { return location.origin + location.pathname + "?room=" + H.code; }
+
+function hostTick() {
+  if (!H || !H.room) return;
+  const r = H.room, t = r.start_at ? now() - r.start_at : null;
+  if (r.status !== "playing") H.finalizing = false;
+  if (r.status === "playing" && t !== null && !H.finalizing) {
+    const allDone = t > 0 && H.players.length > 0 && H.players.every(p => p.finished_ms != null);
+    if (t >= DURATION * 1000 + 1500 || (allDone && t > 1500)) {
+      H.finalizing = true;
+      DB.updateRoom(H.code, { status: "finished" }).catch(e => { console.error(e); H.finalizing = false; });
+    }
+  }
+  if (r.status === "lobby" || t === null) return hostLobby();
+  if (t < 0) return hostCountdown(Math.ceil(-t / 1000));
+  if (r.status === "playing") return hostPlaying(t);
+  hostFinished();
+}
+
+function hostLobby() {
+  view("h-lobby:" + H.code, `
+    <div class="host">
+      <div class="left">
+        ${BRAIN}
+        <h1>HOW FAST DOES<br><span class="gold">YOUR BRAIN THINK?</span></h1>
+        <p class="sub">Find 1 to 25, in order. 25 seconds.</p>
+        <div class="label">Room code</div><div class="code">${esc(H.code)}</div>
+        <div id="qr"></div>
+        <div class="url">${esc(joinURL())}</div>
+      </div>
+      <div class="panel">
+        <div class="label">Players (<span id="pc">0</span>)</div>
+        <div class="chips" id="pl"></div>
+        <button class="btn" id="start" disabled>Start round</button>
+      </div>
+    </div>`, () => {
+      if (window.qrcode) { const q = window.qrcode(0, "M"); q.addData(joinURL()); q.make(); $("#qr").innerHTML = q.createSvgTag({ cellSize: 6, margin: 0, scalable: true }); } else $("#qr").style.display = "none";
+      $("#start").onclick = async () => { $("#start").disabled = true; try { await DB.updateRoom(H.code, { status: "playing", start_at: now() + LEAD_MS, duration: DURATION }); } catch (e) { console.error(e); } };
+    });
+  setText("#pc", H.players.length);
+  setHTML("#pl", H.players.map(p => `<span class="chip">${esc(p.name)}</span>`).join("") || `<span class="small">Waiting for players to join…</span>`);
+  const s = $("#start"); if (s) s.disabled = H.players.length === 0;
+}
+function hostCountdown(n) {
+  view("h-cd", `<div class="hostplay"><p class="label" style="font-size:1.875rem">Get ready</p><div class="big" id="hc"></div><p class="sub">Find 1 to 25, in order</p></div>`);
+  setText("#hc", n);
+}
+function hostPlaying(t) {
+  view("h-play:" + H.room.seed, `<div class="hostplay"><div class="label">Seconds left</div><div class="timer" id="ht">25</div>
+    <div class="bar" style="max-width:700px"><i id="hb" style="width:100%"></i></div><div class="panel" id="lb"></div></div>`);
+  const left = Math.max(0, DURATION * 1000 - t);
+  setText("#ht", Math.ceil(left / 1000));
+  const b = $("#hb"); if (b) b.style.width = (left / (DURATION * 1000) * 100) + "%";
+  setHTML("#lb", lbHTML(H.players, 10));
+}
+function hostFinished() {
+  const r = rank(H.players), w = r[0], has = w && w.found > 0;
+  view("h-done:" + H.room.seed, `<div class="hostplay"><div class="label" style="font-size:1.475rem">${has ? "Winner" : "Round over"}</div>
+    <div class="winner" id="wn"></div><div class="sub" id="ws"></div><div class="panel" id="lb"></div>
+    <button class="btn" id="next">Next round</button></div>`, () => {
+      $("#next").onclick = async () => { $("#next").disabled = true; try { await DB.resetPlayers(H.code); await DB.updateRoom(H.code, { status: "lobby", start_at: null, seed: newSeed() }); } catch (e) { console.error(e); } };
+      if (has && H.doneSeed !== H.room.seed) { H.doneSeed = H.room.seed; confetti(); }
+    });
+  setText("#wn", has ? w.name : "No answers this round");
+  setText("#ws", has ? `${w.found}/25 found · ${w.mistakes} mistake${w.mistakes === 1 ? "" : "s"}${w.finished_ms != null ? " · " + (w.finished_ms / 1000).toFixed(2) + "s" : ""}` : "");
+  setHTML("#lb", lbHTML(H.players, 10));
+}
+
+/* ---------- boot ---------- */
+(async function boot() {
+  if (!useSB) { const d = document.createElement("div"); d.className = "demo"; d.textContent = "Demo mode: no Supabase set. Open this page in several tabs of the same browser to test."; document.body.appendChild(d); }
+  try { await DB.init(); } catch (e) {
+    console.error(e);
+    const msg = (e && (e.message || e.details || e.hint)) || "Network request failed";
+    view("err", `<div class="card"><h2>Cannot reach the game server</h2><p class="sub" id="em"></p>
+      <p class="small">Some preview panes block outside connections. Open the published link in your browser instead.</p>
+      <a class="btn" style="text-decoration:none" href="?demo=1${params.has("host") ? "&host=1" : ""}">Try demo mode</a></div>`);
+    setText("#em", msg);
+    return;
+  }
+  if (params.has("host")) startHost(); else showLanding();
+})();
+})();
+</script>
+</body>
+</html>
